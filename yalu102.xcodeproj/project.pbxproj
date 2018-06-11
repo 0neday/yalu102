@@ -8,10 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		D0C4618020CEB31E00D3854C /* tar-sig in Resources */ = {isa = PBXBuildFile; fileRef = D0C4617B20CEB31D00D3854C /* tar-sig */; };
-		D0C4618220CEB31E00D3854C /* bootstrap.tar in Resources */ = {isa = PBXBuildFile; fileRef = D0C4617D20CEB31D00D3854C /* bootstrap.tar */; };
 		D0C4618320CEB31E00D3854C /* profile in Resources */ = {isa = PBXBuildFile; fileRef = D0C4617E20CEB31D00D3854C /* profile */; };
 		D0C4618420CEB31E00D3854C /* bash-arm64-sig in Resources */ = {isa = PBXBuildFile; fileRef = D0C4617F20CEB31D00D3854C /* bash-arm64-sig */; };
 		D0C4618A20CEBCF100D3854C /* dropbear-sig in Resources */ = {isa = PBXBuildFile; fileRef = D0C4618920CEBCF100D3854C /* dropbear-sig */; };
+		D0C4618D20CEC64B00D3854C /* bootstrap.tar in Resources */ = {isa = PBXBuildFile; fileRef = D0C4618C20CEC64B00D3854C /* bootstrap.tar */; };
 		EA1A3B9D1E391C4F009CA025 /* patchfinder64.o in Frameworks */ = {isa = PBXBuildFile; fileRef = EA1A3B9C1E391C4F009CA025 /* patchfinder64.o */; };
 		EA1A3BC51E39D1FF009CA025 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA1A3BC41E39D1FF009CA025 /* Assets.xcassets */; };
 		EA9900E81E1E9F060056FEBD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = EA9900E71E1E9F060056FEBD /* main.m */; };
@@ -28,10 +28,10 @@
 
 /* Begin PBXFileReference section */
 		D0C4617B20CEB31D00D3854C /* tar-sig */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "tar-sig"; sourceTree = "<group>"; };
-		D0C4617D20CEB31D00D3854C /* bootstrap.tar */ = {isa = PBXFileReference; lastKnownFileType = archive.tar; name = bootstrap.tar; path = "../../extra_recipe-master/extra_recipe/bootstrap/bootstrap.tar"; sourceTree = "<group>"; };
 		D0C4617E20CEB31D00D3854C /* profile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = profile; sourceTree = "<group>"; };
 		D0C4617F20CEB31D00D3854C /* bash-arm64-sig */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "bash-arm64-sig"; sourceTree = "<group>"; };
 		D0C4618920CEBCF100D3854C /* dropbear-sig */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "dropbear-sig"; sourceTree = "<group>"; };
+		D0C4618C20CEC64B00D3854C /* bootstrap.tar */ = {isa = PBXFileReference; lastKnownFileType = archive.tar; path = bootstrap.tar; sourceTree = "<group>"; };
 		EA1A3B9B1E38BBDB009CA025 /* patchfinder64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = patchfinder64.h; sourceTree = "<group>"; };
 		EA1A3B9C1E391C4F009CA025 /* patchfinder64.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = patchfinder64.o; sourceTree = "<group>"; };
 		EA1A3BC41E39D1FF009CA025 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -71,9 +71,9 @@
 		D0C4617A20CEB22C00D3854C /* bootstrap */ = {
 			isa = PBXGroup;
 			children = (
+				D0C4618C20CEC64B00D3854C /* bootstrap.tar */,
 				D0C4617F20CEB31D00D3854C /* bash-arm64-sig */,
 				D0C4618920CEBCF100D3854C /* dropbear-sig */,
-				D0C4617D20CEB31D00D3854C /* bootstrap.tar */,
 				D0C4617E20CEB31D00D3854C /* profile */,
 				D0C4617B20CEB31D00D3854C /* tar-sig */,
 			);
@@ -222,9 +222,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0C4618D20CEC64B00D3854C /* bootstrap.tar in Resources */,
 				D0C4618320CEB31E00D3854C /* profile in Resources */,
 				D0C4618420CEB31E00D3854C /* bash-arm64-sig in Resources */,
-				D0C4618220CEB31E00D3854C /* bootstrap.tar in Resources */,
 				D0C4618A20CEBCF100D3854C /* dropbear-sig in Resources */,
 				D0C4618020CEB31E00D3854C /* tar-sig in Resources */,
 				EA9900F61E1E9F060056FEBD /* LaunchScreen.storyboard in Resources */,
