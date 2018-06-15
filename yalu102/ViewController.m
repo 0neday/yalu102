@@ -15,6 +15,9 @@
 #import <mach/mach.h>
 #include <sys/utsname.h>
 
+#include "common.h"
+
+
 extern uint64_t procoff;
 
 typedef struct {
@@ -370,7 +373,10 @@ gotclock:;
     
     extern uint64_t slide;
     slide = kernel_base - 0xFFFFFFF007004000;
-    
+  
+    NSLog(@"got slide -> %llx", slide);
+  
+  
     void exploit(void*, mach_port_t, uint64_t, uint64_t);
     exploit(sender, pt, kernel_base, allproc_offset);
     [dope setEnabled:NO];

