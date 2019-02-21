@@ -10,9 +10,9 @@
 
 @interface ViewController : UIViewController
 {
-    IBOutlet UIButton* dope;
+    IBOutlet UIButton* go;
 }
-- (IBAction)yolo:(id)sender;
+- (IBAction)yalu102:(id)sender;
 
 @end
 
