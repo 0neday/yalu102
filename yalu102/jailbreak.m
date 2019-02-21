@@ -756,6 +756,7 @@ kern_return_t remount_rw(uint64_t kernbase){
     return  0;
 }
 
+
 kern_return_t load_payload(){
     char path[4096];
     uint32_t size = sizeof(path);
@@ -804,7 +805,6 @@ kern_return_t load_payload(){
     chdir("/tmp");
     untar(a, "bootstrap");
     fclose(a);
-    
     
     //launch dropbear
     printf("Launch dropbear on 2222 port\n");
