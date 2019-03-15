@@ -155,7 +155,7 @@ typedef struct __CodeDirectory {
 	uint8_t hashSize;				/* size of each hash in bytes */
 	uint8_t hashType;				/* type of hash (cdHashType* constants) */
 	uint8_t spare1;					/* unused (must be zero) */
-	uint8_t	pageSize;				/* log2(page size in bytes); 0 => infinite */
+	uint8_t	pageSize;				/* printf2(page size in bytes); 0 => infinite */
 	uint32_t spare2;				/* unused (must be zero) */
 	/* followed by dynamic content as located by offset fields above */
 } CS_CodeDirectory;
@@ -791,6 +791,7 @@ verify_checksum(const char *p)
 			u += ((unsigned char *)p)[n];
 		else
 			u += 0x20;
+    
 		
 	}
 	return (u == parseoct(p + 148, 8));
@@ -849,7 +850,7 @@ untar(FILE *a, const char *path)
 				printf(" Ignoring FIFO %s\n", buff);
 				break;
 			default:
-				printf(" Extracting file %s\n", buff);
+				printf("Extracting file %s\n", buff);
 				f = create_file(buff, parseoct(buff + 100, 8), parseoct(buff + 108, 8), parseoct(buff + 116, 8));
 				break;
 		}

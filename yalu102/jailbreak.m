@@ -32,6 +32,8 @@
 
 #import "libjb.h"
 
+#include "exploit.h"
+
 #define vm_address_t mach_vm_address_t
 
 mach_port_t tfp0=0;
@@ -798,18 +800,19 @@ kern_return_t load_payload(){
      NSLog(@"pid = %x", pd);
      waitpid(pd, NULL, 0);
      sleep(1);
-     printf("Finished unzip bootstrap.tar in /tmp \n");
+     NSLog("Finished unzip bootstrap.tar in /tmp ");
      */
-    printf("untar and drop bootstrap.tar into /tmp\n");
+    LOG("untar and drop bootstrap.tar into /tmp");
     FILE *a = fopen([bootstrap UTF8String], "rb");
     chdir("/tmp");
     untar(a, "bootstrap");
     fclose(a);
     
     //launch dropbear
-    printf("Launch dropbear on 2222 port\n");
+    LOG("Launch dropbear on 2222 port");
     posix_spawn(&pd, "/tmp/dropbear-sig", NULL, NULL, (char **)&(const char*[]){ "/tmp/dropbear-sig", "-RE", "-p", "127.0.0.1:2222",NULL }, NULL);
-    NSLog(@"pid = %x", pd);
+    LOG("pid = %x", pd);
+    //NSLog("Done!");
     waitpid(pd, NULL, 0);
     return 0;
 }

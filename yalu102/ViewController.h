@@ -9,10 +9,13 @@
 #import <UIKit/UIKit.h>
 
 @interface ViewController : UIViewController
-{
-    IBOutlet UIButton* go;
-}
-- (IBAction)yalu102:(id)sender;
 
+@property (weak, nonatomic) IBOutlet UIButton* go;
+@property (weak, nonatomic) IBOutlet UITextView *outputView;
+@property (readonly) ViewController *sharedController;
+
+- (IBAction)yalu102:(id)sender;
++(ViewController*)sharedController;
+- (void)appendTextToOutput:(NSString*)text;
 @end
 

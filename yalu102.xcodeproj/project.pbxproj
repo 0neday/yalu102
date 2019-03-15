@@ -28,6 +28,18 @@
 		EA9901171E21A1D90056FEBD /* devicesupport.m in Sources */ = {isa = PBXBuildFile; fileRef = EA9901161E21A1D90056FEBD /* devicesupport.m */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXBuildRule section */
+		D00BFEE1221FA80A00AF480D /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			fileType = pattern.proxy;
+			isEditable = 1;
+			outputFiles = (
+			);
+			script = "";
+		};
+/* End PBXBuildRule section */
+
 /* Begin PBXFileReference section */
 		D007D37F221E630300762FA6 /* common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = common.h; sourceTree = "<group>"; };
 		D007D380221E633500762FA6 /* jailbreak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = jailbreak.h; sourceTree = "<group>"; };
@@ -188,6 +200,7 @@
 				EA9900E11E1E9F060056FEBD /* Resources */,
 			);
 			buildRules = (
+				D00BFEE1221FA80A00AF480D /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -297,6 +310,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
@@ -348,6 +362,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;

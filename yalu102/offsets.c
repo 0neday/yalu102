@@ -5,6 +5,7 @@
 
 #include "offsets.h"
 
+
 uint64_t allproc_offset;
 uint64_t kernproc_offset;
 uint64_t procoff;
@@ -13,13 +14,6 @@ uint64_t rootvnode_offset;
 void init_offsets() {
     struct utsname u = { 0 };
     uname(&u);
-
-    printf("sysname: %s\n", u.sysname);
-    printf("nodename: %s\n", u.nodename);
-    printf("release: %s\n", u.release);
-    printf("version: %s\n", u.version);
-    printf("machine: %s\n", u.machine);
-
     allproc_offset = 0x5a4148;
     procoff = 0x360;
     rootvnode_offset = 0x5aa0b8;
